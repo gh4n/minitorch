@@ -29,15 +29,22 @@ class Module:
         m: Dict[str, Module] = self.__dict__["_modules"]
         return list(m.values())
 
+    def update_mode(self, node: Module, mode: bool) -> None:
+        if not node:
+            return
+        
+        node.training = mode
+        
+        for child in node._modules.values():
+            self.update_mode(child, mode)
+        
     def train(self) -> None:
         "Set the mode of this module and all descendent modules to `train`."
-        # TODO: Implement for Task 0.4.
-        raise NotImplementedError('Need to implement for Task 0.4')
+        self.update_mode(self, True)   
 
     def eval(self) -> None:
         "Set the mode of this module and all descendent modules to `eval`."
-        # TODO: Implement for Task 0.4.
-        raise NotImplementedError('Need to implement for Task 0.4')
+        self.update_mode(self, False)
 
     def named_parameters(self) -> Sequence[Tuple[str, Parameter]]:
         """
@@ -47,13 +54,28 @@ class Module:
         Returns:
             The name and `Parameter` of each ancestor parameter.
         """
-        # TODO: Implement for Task 0.4.
-        raise NotImplementedError('Need to implement for Task 0.4')
+        seq = []
+        def traverse(name, node):
+            prefix = name + "." if name else ""
+            for key, param in node._parameters.items():
+                seq.append((prefix + key, param))
 
+            for k, child in node._modules.items():
+                traverse(prefix + k, child)
+        traverse("", self)
+        return seq
+            
+    
     def parameters(self) -> Sequence[Parameter]:
         "Enumerate over all the parameters of this module and its descendents."
-        # TODO: Implement for Task 0.4.
-        raise NotImplementedError('Need to implement for Task 0.4')
+        seq = []
+        def traverse(node):
+            nonlocal seq
+            seq += list(node._parameters.values())
+            for child in node._modules.values():
+                traverse(child)
+        traverse(self)
+        return seq
 
     def add_parameter(self, k: str, v: Any) -> Parameter:
         """
