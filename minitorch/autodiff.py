@@ -22,14 +22,12 @@ def central_difference(f: Any, *vals: Any, arg: int = 0, epsilon: float = 1e-6) 
     Returns:
         An approximation of $f'_i(x_0, \ldots, x_{n-1})$
     """
-    vals = [x for x in vals]
+    f_x = f(*vals)
+    vals = list(vals)
     vals[arg] += epsilon
-    m = f(*vals)
-    vals[arg] -= 2 * epsilon
-    n = f(*vals)
-
-    return (m - n) / (2 * epsilon)
-
+    vals = tuple(vals)
+    f_delta_x = f(*vals)
+    return (f_delta_x - f_x) / epsilon
 
 variable_count = 1
 
@@ -66,9 +64,25 @@ def topological_sort(variable: Variable) -> Iterable[Variable]:
     Returns:
         Non-constant Variables in topological order starting from the right.
     """
-    # TODO: Implement for Task 1.4.
-    raise NotImplementedError('Need to implement for Task 1.4')
-
+    sort_res = []
+    vis = {}
+    done = {}
+    
+    def dfs_toposort(v: Variable):
+        if v.unique_id in vis:
+            return
+        vis[v.unique_id] = True
+        if v.is_constant():
+            return
+        for p in v.parents:
+            if not p.unique_id in done:
+                dfs_toposort(p)
+        sort_res.append(v)
+        done[v.unique_id] = True
+        vis.pop(v.unique_id)
+    dfs_toposort(variable)
+    sort_res.reverse()
+    return sort_res
 
 def backpropagate(variable: Variable, deriv: Any) -> None:
     """
@@ -81,8 +95,20 @@ def backpropagate(variable: Variable, deriv: Any) -> None:
 
     No return. Should write to its results to the derivative values of each leaf through `accumulate_derivative`.
     """
-    # TODO: Implement for Task 1.4.
-    raise NotImplementedError('Need to implement for Task 1.4')
+    d_chain = topological_sort(variable)
+    d_map = {variable.unique_id: deriv}
+    
+    for node in d_chain:
+        d_out = d_map.get(node.unique_id)
+        if node.is_leaf():
+            print(d_map, d_out)
+            node.accumulate_derivative(d_out)
+        else:
+            new_grads = node.chain_rule(d_out)
+            for (input, diff) in new_grads:
+                pre = d_map.get(input.unique_id, 0.0)
+                d_map.update({input.unique_id: pre+diff})
+
 
 
 @dataclass
